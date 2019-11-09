@@ -1,4 +1,5 @@
 pragma solidity ^0.5.0;
+import "@openzeppelin/contracts/math/SafeMath.sol";
 
 contract SignatureVerification {
 
@@ -56,6 +57,8 @@ contract SignatureVerification {
 
 contract CryptoBrawl is SignatureVerification {
 
+    using SafeMath for uint8;
+
     struct Character {
         uint8 level;
         uint256 fightsCount;
@@ -74,7 +77,7 @@ contract CryptoBrawl is SignatureVerification {
         address player2GeneralAddress;
         address player1TempAddress;
         address player2TempAddress;
-        uint8 stepNum;
+        uint256 stepNum;
         uint256 lastStepBlock;
         address winner; // победитель боя, либо 0x00 если бой в процессе
     }
@@ -87,29 +90,40 @@ contract CryptoBrawl is SignatureVerification {
     uint256 private _challengeCount;
     uint256 private _fightsCount;
 
-    //Character private defaultChar = Character();
+    Character private defaultChar = Character(
+        1, // defaultLevel
+        0, // fightsCount
+        0, // winsCount
+        45, // default fullHP
+        15, // default damage
+        0, // fightId
+        45,
+        0
+    );
 
-    event LookingForAFight(address player);
-    event FightFinished(address winner);
+    event LookingForAFight(address player, uint256 level);
+    event FightCreated(address player1, address player2, uint256 fightId);
+    event FightFinished(address winner, uint256 fightId);
 
 
     function createFight(uint8 level, bytes32 playerCharID) internal {
         bytes32 _oponentsCharID = challengesList[level];
-        address _oponentsAddress = temporaryAddresses[msg.sender];
         challengesList[level] = 0;
         _fightsCount += 1;
-        Fight memory _newFight = Fight(playerCharID, //player1Character
+        Fight memory _newFight = Fight(
+            playerCharID, //player1Character
             _oponentsCharID, // player2Character
-            msg.sender, // player1
-            charsTopPlayer[_oponentsCharID], // player2
-            _oponentsAddress, // player1TempAddress
-            temporaryAddresses[_oponentsAddress], // player2TempAddress
+            msg.sender, // player1GeneralAddress
+            charsTopPlayer[_oponentsCharID], // player2GeneralAddress
+            temporaryAddresses[msg.sender], // player1TempAddress
+            temporaryAddresses[charsTopPlayer[_oponentsCharID]], // player2TempAddress
             1, // current step
             block.number, //  current blockNumber
             address(0));  // address winner
         fights[_fightsCount] = _newFight;
         chars[_oponentsCharID].fightId = _fightsCount;
         chars[playerCharID].fightId = _fightsCount;
+        emit FightCreated(msg.sender,charsTopPlayer[_oponentsCharID], _fightsCount);
     }
 
     function searchFight(address ERC721, uint256 tokenID, address tempAddress) public  {
@@ -117,13 +131,14 @@ contract CryptoBrawl is SignatureVerification {
         bytes32 _charID = keccak256(abi.encodePacked(ERC721, tokenID)); // generate charID
         require(chars[_charID].fightId == 0);
         if (chars[_charID].level == 0) {
-            //chars[_charID] =
+            chars[_charID] = defaultChar;
         }
         charsTopPlayer[_charID] = msg.sender; //
         uint8 level = chars[_charID].level;
         temporaryAddresses[msg.sender] = tempAddress;
         if (challengesList[level] == 0) {
             challengesList[level] = _charID;
+            emit LookingForAFight(msg.sender, level);
         }
         else {
             createFight(level,_charID);
@@ -132,9 +147,9 @@ contract CryptoBrawl is SignatureVerification {
 
     function checkAction(
         uint256 fightID,
-        uint8 stepNum,
-        uint8 playerAction1,
-        uint8 playerAction2,
+        uint256 stepNum,
+        uint256 playerAction1,
+        uint256 playerAction2,
         string memory playerSalt,
         bytes memory signature) public pure returns(address)
     {
@@ -149,10 +164,10 @@ contract CryptoBrawl is SignatureVerification {
     }
 
     function calculateDamage(
-        uint8 playerAction1,
-        uint8 playerAction2,
-        uint8 oponentAction1,
-        uint8 oponentAction2 ) public pure returns(uint8)
+        uint256 playerAction1,
+        uint256 playerAction2,
+        uint256 oponentAction1,
+        uint256 oponentAction2 ) public pure returns(uint8)
     {
         uint8 damageDealed;
         if (playerAction1 == 1 || playerAction2 == 1) {
@@ -175,11 +190,11 @@ contract CryptoBrawl is SignatureVerification {
 
     function actionSet(
         uint256 fightID,
-        uint8 stepNum,
-        uint8 player1Action1,
-        uint8 player1Action2,
-        uint8 player2Action1,
-        uint8 player2Action2,
+        uint256 stepNum,
+        uint256 player1Action1,
+        uint256 player1Action2,
+        uint256 player2Action1,
+        uint256 player2Action2,
         string memory player1Salt,
         string memory player2Salt,
         bytes memory player1Signature,
@@ -193,17 +208,17 @@ contract CryptoBrawl is SignatureVerification {
             stepNum,
             player1Action1,
             player1Action2,
-            player1Salt,player1Signature) == currentFight.player1GeneralAddress
+            player1Salt,player1Signature) == currentFight.player1TempAddress
         &&
         checkAction(
             fightID,
             stepNum,
             player2Action1,
             player2Action2,
-            player2Salt,player2Signature) == currentFight.player2GeneralAddress
+            player2Salt,player2Signature) == currentFight.player2TempAddress
         );  // validate that actions actualy signed by current players
-        chars[currentFight.player2CharID].currentHP -= (calculateDamage(player1Action1,player1Action2, player2Action1, player2Action2) * (chars[currentFight.player1CharID].damage));
-        chars[currentFight.player1CharID].currentHP -= (calculateDamage(player2Action1,player2Action2, player1Action1, player1Action2) * (chars[currentFight.player2CharID].damage));
+        chars[currentFight.player2CharID].currentHP.sub(calculateDamage(player1Action1,player1Action2, player2Action1, player2Action2) * (chars[currentFight.player1CharID].damage));
+        chars[currentFight.player1CharID].currentHP.sub(calculateDamage(player2Action1,player2Action2, player1Action1, player1Action2) * (chars[currentFight.player2CharID].damage));
         fights[fightID].lastStepBlock = block.number;
         fights[fightID].stepNum +=1;
         if (chars[currentFight.player1CharID].currentHP <= 0 || chars[currentFight.player2CharID].currentHP <= 0) {
@@ -212,11 +227,13 @@ contract CryptoBrawl is SignatureVerification {
             if (chars[currentFight.player1CharID].currentHP <= 0) {
                 fights[fightID].winner == currentFight.player2GeneralAddress;
                 chars[currentFight.player2CharID].winsCount +=1;
+                emit FightFinished(fights[fightID].winner,fightID);
                 // player2Char.level +=1;
             }
             else {
                 fights[fightID].winner == currentFight.player1GeneralAddress;
                 chars[currentFight.player1CharID].winsCount +=1;
+                emit FightFinished(fights[fightID].winner,fightID);
                 // player2Char.level +=1;
             }
             chars[currentFight.player1CharID].lastFihgtBlockNumber = block.number;
@@ -224,6 +241,8 @@ contract CryptoBrawl is SignatureVerification {
             chars[currentFight.player1CharID].fightId = 0;
             chars[currentFight.player2CharID].fightId = 0;
         }
+
+
 
         // Посчитать и изменить хп игроков, номер хода
         // Если у кого то хп становится меньше либо равно нулю то удаляем бой, выставляем хп на некий уровень
