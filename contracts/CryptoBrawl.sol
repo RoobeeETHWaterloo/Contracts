@@ -56,7 +56,6 @@ contract SignatureVerification {
 
 contract CryptoBrawl is SignatureVerification {
 
-
     struct Character {
         uint8 level;
         uint256 fightsCount;
@@ -215,31 +214,20 @@ contract CryptoBrawl is SignatureVerification {
             player2Action2,
             player2Salt,player2Signature) == currentFight.player2TempAddress
         );  // validate that actions actualy signed by current players
-        if (chars[currentFight.player2CharID].currentHP
-            <=
-            (calculateDamage(player1Action1,player1Action2, player2Action1, player2Action2) * (chars[currentFight.player1CharID].damage)))
-        {
-            chars[currentFight.player2CharID].currentHP = 0;
-        }
-        else {
-            chars[currentFight.player2CharID].currentHP -= calculateDamage(player1Action1,player1Action2, player2Action1, player2Action2) * (chars[currentFight.player1CharID].damage);
-        }
-        if (chars[currentFight.player1CharID].currentHP
-            <=
-            (calculateDamage(player2Action1,player2Action2, player1Action1, player1Action2) * (chars[currentFight.player2CharID].damage)))
-        {
-            chars[currentFight.player2CharID].currentHP = 0;
-        }
-        else {
-            chars[currentFight.player2CharID].currentHP -= calculateDamage(player2Action1,player2Action2, player1Action1, player1Action2) * (chars[currentFight.player2CharID].damage);
-        }
+
+
+        //calculate damage by player2
+        uint256 player1Damage = calculateDamage(player1Action1,player1Action2, player2Action1, player2Action2) * (chars[currentFight.player1CharID].damage);
+        //calculate damage by player2
+        uint256 player2Damage = calculateDamage(player2Action1,player2Action2, player1Action1, player1Action2) * (chars[currentFight.player2CharID].damage);
 
         fights[fightID].lastStepBlock = block.number;
         fights[fightID].stepNum +=1;
-        if (chars[currentFight.player1CharID].currentHP <= 0 || chars[currentFight.player2CharID].currentHP <= 0) {
-            chars[currentFight.player1CharID].fightsCount +=1;
-            chars[currentFight.player2CharID].fightsCount +=1;
-            if (chars[currentFight.player1CharID].currentHP <= 0) {
+
+        if (chars[currentFight.player1CharID].currentHP <= player2Damage
+            || chars[currentFight.player2CharID].currentHP <= player1Damage) {
+
+            if (chars[currentFight.player1CharID].currentHP <= player2Damage) {
                 fights[fightID].winner == currentFight.player2GeneralAddress;
                 chars[currentFight.player2CharID].winsCount +=1;
                 emit FightFinished(fights[fightID].winner,fightID);
@@ -251,6 +239,8 @@ contract CryptoBrawl is SignatureVerification {
                 emit FightFinished(fights[fightID].winner,fightID);
                 // player2Char.level +=1;
             }
+            chars[currentFight.player1CharID].fightsCount +=1;
+            chars[currentFight.player2CharID].fightsCount +=1;
             chars[currentFight.player1CharID].lastFihgtBlockNumber = block.number;
             chars[currentFight.player2CharID].lastFihgtBlockNumber = block.number;
             chars[currentFight.player1CharID].fightId = 0;
