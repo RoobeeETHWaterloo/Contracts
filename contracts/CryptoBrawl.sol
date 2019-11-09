@@ -1,5 +1,4 @@
 pragma solidity ^0.5.0;
-import "@openzeppelin/contracts/math/SafeMath.sol";
 
 contract SignatureVerification {
 
@@ -57,7 +56,6 @@ contract SignatureVerification {
 
 contract CryptoBrawl is SignatureVerification {
 
-    using SafeMath for uint8;
 
     struct Character {
         uint8 level;
@@ -217,8 +215,25 @@ contract CryptoBrawl is SignatureVerification {
             player2Action2,
             player2Salt,player2Signature) == currentFight.player2TempAddress
         );  // validate that actions actualy signed by current players
-        chars[currentFight.player2CharID].currentHP.sub(calculateDamage(player1Action1,player1Action2, player2Action1, player2Action2) * (chars[currentFight.player1CharID].damage));
-        chars[currentFight.player1CharID].currentHP.sub(calculateDamage(player2Action1,player2Action2, player1Action1, player1Action2) * (chars[currentFight.player2CharID].damage));
+        if (chars[currentFight.player2CharID].currentHP
+            <=
+            (calculateDamage(player1Action1,player1Action2, player2Action1, player2Action2) * (chars[currentFight.player1CharID].damage)))
+        {
+            chars[currentFight.player2CharID].currentHP = 0;
+        }
+        else {
+            chars[currentFight.player2CharID].currentHP -= calculateDamage(player1Action1,player1Action2, player2Action1, player2Action2) * (chars[currentFight.player1CharID].damage);
+        }
+        if (chars[currentFight.player1CharID].currentHP
+            <=
+            (calculateDamage(player2Action1,player2Action2, player1Action1, player1Action2) * (chars[currentFight.player2CharID].damage)))
+        {
+            chars[currentFight.player2CharID].currentHP = 0;
+        }
+        else {
+            chars[currentFight.player2CharID].currentHP -= calculateDamage(player2Action1,player2Action2, player1Action1, player1Action2) * (chars[currentFight.player2CharID].damage);
+        }
+
         fights[fightID].lastStepBlock = block.number;
         fights[fightID].stepNum +=1;
         if (chars[currentFight.player1CharID].currentHP <= 0 || chars[currentFight.player2CharID].currentHP <= 0) {
@@ -251,4 +266,3 @@ contract CryptoBrawl is SignatureVerification {
         //
     }
 }
-
