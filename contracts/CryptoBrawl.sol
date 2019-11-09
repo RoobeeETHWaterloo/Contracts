@@ -1,6 +1,59 @@
 pragma solidity ^0.5.0;
 
-contract CryptoBrawl {
+contract SignatureVerification {
+
+    function recover(bytes32 hash, bytes memory signature)
+    internal
+    pure
+    returns (address)
+    {
+        bytes32 r;
+        bytes32 s;
+        uint8 v;
+
+        // Check the signature length
+        if (signature.length != 65) {
+            return (address(0));
+        }
+
+        // Divide the signature in r, s and v variables with inline assembly.
+        assembly {
+            r := mload(add(signature, 0x20))
+            s := mload(add(signature, 0x40))
+            v := byte(0, mload(add(signature, 0x60)))
+        }
+
+        // Version of signature should be 27 or 28, but 0 and 1 are also possible versions
+        if (v < 27) {
+            v += 27;
+        }
+
+        // If the version is correct return the signer address
+        if (v != 27 && v != 28) {
+            return (address(0));
+        } else {
+            // solium-disable-next-line arg-overflow
+            return ecrecover(hash, v, r, s);
+        }
+    }
+
+    /**
+      * toEthSignedMessageHash
+      * @dev prefix a bytes32 value with "\x19Ethereum Signed Message:"
+      * and hash the result
+      */
+    function toEthSignedMessageHash(bytes32 hash)
+    internal
+    pure
+    returns (bytes32)
+    {
+        return keccak256(
+            abi.encodePacked("\x19Ethereum Signed Message:\n32", hash)
+        );
+    }
+}
+
+contract CryptoBrawl is SignatureVerification {
 
     struct Character {
         uint256 level;
@@ -73,6 +126,24 @@ contract CryptoBrawl {
         }
     }
 
+    function checkAction(
+        uint256 fightID,
+        uint256 stepNum,
+        uint256 playerAction1,
+        uint256 playerAction2,
+        string memory playerSalt,
+        bytes memory signature) public view returns(address)
+    {
+        bytes32 hash = keccak256(abi.encodePacked(fightID,
+            stepNum,
+            playerAction1,
+            playerAction2,
+            playerSalt));
+        bytes32 messageHash = toEthSignedMessageHash(hash);
+        address signer = recover(messageHash, signature);
+        return signer;
+    }
+
     function actionSet(
         uint256 fightID,
         uint256 stepNum,
@@ -80,13 +151,30 @@ contract CryptoBrawl {
         uint256 player1Action2,
         uint256 player2Action1,
         uint256 player2Action2,
-        bytes32 player1Salt,
-        bytes32 player2Salt,
-        bytes32 player1Signature,
-        bytes32 player2Signature
-    ) public
+        string memory player1Salt,
+        string memory player2Salt,
+        bytes memory player1Signature,
+        bytes memory player2Signature
+    ) public returns(bool)
     {
         Fight memory currentFight = fights[fightID];
+        address player1GeneralAddress = currentFight.player1GeneralAddress;
+        address player2GeneralAddress = currentFight.player2GeneralAddress;
+        require(checkAction(
+            fightID,
+            stepNum,
+            player1Action1,
+            player1Action2,
+            player1Salt,player1Signature) == player1GeneralAddress
+        &&
+        checkAction(
+            fightID,
+            stepNum,
+            player2Action1,
+            player2Action2,
+            player2Salt,player2Signature) == player2GeneralAddress
+        );
+
 
         // Проверить что подписи принадлежать player1 и player2
         // Посчитать и изменить хп игроков, номер хода
