@@ -1,8 +1,9 @@
 const CryptoBrawl = artifacts.require("CryptoBrawl");
-//const Web3 = require('web3');
-//const provider = new Web3.providers.HttpProvider('http://localhost:7545');
-//const web3 = new Web3(provider);
+const Web3 = require('web3');
+const provider = new Web3.providers.HttpProvider('http://sip1.skalenodes.com:10046');
+const web3 = new Web3(provider);
 const truffleAssert = require('truffle-assertions');
+
 
 const address721 = "0x06012c8cf97bead5deae237070f9587f8e7a266d";
 const tokenID1 = 1256264;

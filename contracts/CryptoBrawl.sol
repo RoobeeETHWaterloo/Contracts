@@ -56,6 +56,7 @@ contract SignatureVerification {
 
 contract CryptoBrawl is SignatureVerification {
 
+
     struct Character {
         uint8 level;
         uint256 fightsCount;
@@ -132,6 +133,7 @@ contract CryptoBrawl is SignatureVerification {
             chars[_charID] = defaultChar;
         }
         charsTopPlayer[_charID] = msg.sender; //
+        chars[_charID].currentHP = chars[_charID].fullHp;
         uint8 level = chars[_charID].level;
         temporaryAddresses[msg.sender] = tempAddress;
         if (challengesList[level] == 0) {
@@ -229,13 +231,12 @@ contract CryptoBrawl is SignatureVerification {
             || chars[currentFight.player2CharID].currentHP <= player1Damage) {
 
             if (chars[currentFight.player1CharID].currentHP <= player2Damage) {
-                fights[fightID].winner == currentFight.player2GeneralAddress;
+                fights[fightID].winner = currentFight.player2GeneralAddress;
                 chars[currentFight.player2CharID].winsCount +=1;
                 emit FightFinished(fights[fightID].winner,fightID);
-                // player2Char.level +=1;
             }
             else {
-                fights[fightID].winner == currentFight.player1GeneralAddress;
+                fights[fightID].winner = currentFight.player1GeneralAddress;
                 chars[currentFight.player1CharID].winsCount +=1;
                 emit FightFinished(fights[fightID].winner,fightID);
                 // player2Char.level +=1;
@@ -253,5 +254,6 @@ contract CryptoBrawl is SignatureVerification {
             chars[currentFight.player1CharID].currentHP -= player2Damage;
             chars[currentFight.player2CharID].currentHP -= player1Damage;
         }
+
     }
 }
