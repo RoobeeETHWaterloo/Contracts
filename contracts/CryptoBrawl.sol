@@ -125,6 +125,7 @@ contract CryptoBrawl is SignatureVerification {
 
     function searchFight(address ERC721, uint256 tokenID, address tempAddress) public  {
         // проверка валидатора
+        require(temporaryAddresses[msg.sender] == address(0), "already have a challenge");
         bytes32 _charID = keccak256(abi.encodePacked(ERC721, tokenID)); // generate charID
         require(chars[_charID].fightId == 0);
         if (chars[_charID].level == 0) {
@@ -217,9 +218,9 @@ contract CryptoBrawl is SignatureVerification {
 
 
         //calculate damage by player2
-        uint256 player1Damage = calculateDamage(player1Action1,player1Action2, player2Action1, player2Action2) * (chars[currentFight.player1CharID].damage);
+        uint8 player1Damage = calculateDamage(player1Action1,player1Action2, player2Action1, player2Action2) * (chars[currentFight.player1CharID].damage);
         //calculate damage by player2
-        uint256 player2Damage = calculateDamage(player2Action1,player2Action2, player1Action1, player1Action2) * (chars[currentFight.player2CharID].damage);
+        uint8 player2Damage = calculateDamage(player2Action1,player2Action2, player1Action1, player1Action2) * (chars[currentFight.player2CharID].damage);
 
         fights[fightID].lastStepBlock = block.number;
         fights[fightID].stepNum +=1;
@@ -245,6 +246,12 @@ contract CryptoBrawl is SignatureVerification {
             chars[currentFight.player2CharID].lastFihgtBlockNumber = block.number;
             chars[currentFight.player1CharID].fightId = 0;
             chars[currentFight.player2CharID].fightId = 0;
+            temporaryAddresses[currentFight.player1GeneralAddress] = address (0);
+            temporaryAddresses[currentFight.player2GeneralAddress] = address (0);
+        }
+        else {
+            chars[currentFight.player1CharID].currentHP -= player2Damage;
+            chars[currentFight.player2CharID].currentHP -= player1Damage;
         }
     }
 }
