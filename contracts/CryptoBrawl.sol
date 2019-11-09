@@ -83,10 +83,11 @@ contract CryptoBrawl is SignatureVerification {
     mapping (bytes32 => Character) public chars;
     mapping (uint256 => Fight) public fights;
     mapping (uint8 => bytes32) public challengesList; // level => charID
-    mapping (address => address) private temporaryAddresses; // genaral => temp
-    mapping (bytes32 => address) public charsTopPlayer; // charID => main acc
+    mapping (address => address) public temporaryAddresses; // genaral => temp
+    mapping (bytes32 => address) private charsTopPlayer; // charID => main acc
+    mapping (address => bytes32) private playerToChars;
     uint256 private _challengeCount;
-    uint256 private _fightsCount;
+    uint256 public _fightsCount;
 
     Character private defaultChar = Character(
         1, // defaultLevel
@@ -102,6 +103,7 @@ contract CryptoBrawl is SignatureVerification {
     event LookingForAFight(address player, uint256 level);
     event FightCreated(address player1, address player2, uint256 fightId);
     event FightFinished(address winner, uint256 fightId);
+
 
 
     function createFight(uint8 level, bytes32 player2CharID) internal {
@@ -128,11 +130,13 @@ contract CryptoBrawl is SignatureVerification {
         // проверка валидатора
         require(temporaryAddresses[msg.sender] == address(0), "already have a challenge");
         bytes32 _charID = keccak256(abi.encodePacked(ERC721, tokenID)); // generate charID
-        require(chars[_charID].fightId == 0); // check if
+        require(chars[_charID].fightId == 0); // check if char in fight
+        require(challengesList[chars[_charID].level] != _charID); // check if char in challenge
         if (chars[_charID].level == 0) {
             chars[_charID] = defaultChar;
         }
         charsTopPlayer[_charID] = msg.sender; //
+        playerToChars [msg.sender] = _charID;
         chars[_charID].currentHP = chars[_charID].fullHp;
         uint8 level = chars[_charID].level;
         temporaryAddresses[msg.sender] = tempAddress;
@@ -202,6 +206,7 @@ contract CryptoBrawl is SignatureVerification {
         bytes memory player2Signature
     ) public
     {
+        require(fightID == chars[playerToChars[msg.sender]].fightId);
         require(player1Action1 != player1Action2 && player2Action1 != player2Action2, "unavailable actions");
         Fight memory currentFight = fights[fightID];
         require(checkAction(
@@ -218,8 +223,17 @@ contract CryptoBrawl is SignatureVerification {
             player2Action2,
             player2Salt,player2Signature) == currentFight.player2TempAddress
         );  // validate that actions actualy signed by current players
-
-
+        //require(stepNum == currentFight.stepNum)
+        /**
+        if (stepNum%2 == 0)
+        {
+            require(msg.sender == currentFight.player2GeneralAddress);
+        }
+        else
+        {
+            require(msg.sender == currentFight.player1GeneralAddress);
+        }
+        */
         //calculate damage by player2
         uint8 player1Damage = calculateDamage(player1Action1,player1Action2, player2Action1, player2Action2) * (chars[currentFight.player1CharID].damage);
         //calculate damage by player2
@@ -233,16 +247,16 @@ contract CryptoBrawl is SignatureVerification {
 
             if (chars[currentFight.player1CharID].currentHP <= player2Damage) {
 
-                chars[currentFight.player2CharID].currentHP -= player1Damage;
-                chars[currentFight.player1CharID].currentHP = 0;
+                chars[currentFight.player1CharID].currentHP = chars[currentFight.player1CharID].fullHp;
+                chars[currentFight.player2CharID].currentHP = chars[currentFight.player2CharID].fullHp;
                 fights[fightID].winner = currentFight.player2GeneralAddress;
                 chars[currentFight.player2CharID].winsCount +=1;
                 emit FightFinished(fights[fightID].winner,fightID);
 
             }
             else {
-                chars[currentFight.player1CharID].currentHP -= player2Damage;
-                chars[currentFight.player2CharID].currentHP = 0;
+                chars[currentFight.player1CharID].currentHP = chars[currentFight.player1CharID].fullHp;
+                chars[currentFight.player2CharID].currentHP = chars[currentFight.player2CharID].fullHp;
                 fights[fightID].winner = currentFight.player1GeneralAddress;
                 chars[currentFight.player1CharID].winsCount +=1;
                 emit FightFinished(fights[fightID].winner,fightID);
@@ -263,5 +277,28 @@ contract CryptoBrawl is SignatureVerification {
         }
 
     }
+
+
+
+    /**
+
+    function cancelSearch(address ) public {
+
+    }
+
+    function giveUp() public {
+
+    }
+
+    /**
+    function claimTimeOut(uint256 fightID) public {
+        if (fights[fightID].stepNum % 2 == 0) {
+            if (fights[fightID].player1GeneralAddress == msg.sender) {
+
+            }
+        }
+
+    }
+    */
 
 }

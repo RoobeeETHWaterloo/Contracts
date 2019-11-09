@@ -59,3 +59,19 @@ contract("CryptoBrawlTest", async accounts => {
 
     });
 });
+
+
+
+
+constructor (uint8 level,
+    uint256 fightsCount,
+    uint256 winsCount,
+    uint8 fullHp,
+    uint8 damage,
+    uint256 fightId,
+    uint8 currentHP,
+    uint256 lastFihgtBlockNumber)
+public {
+    defaultChar = Character(level, fightsCount, winsCount, fullHp, damage, fightId,currentHP,lastFihgtBlockNumber);
+
+}
