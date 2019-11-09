@@ -246,13 +246,5 @@ contract CryptoBrawl is SignatureVerification {
             chars[currentFight.player1CharID].fightId = 0;
             chars[currentFight.player2CharID].fightId = 0;
         }
-
-
-
-        // Посчитать и изменить хп игроков, номер хода
-        // Если у кого то хп становится меньше либо равно нулю то удаляем бой, выставляем хп на некий уровень
-        // EVENT
-        // Повышаем левел, кол-во побед и тд.
-        //
     }
 }
