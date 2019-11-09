@@ -104,31 +104,31 @@ contract CryptoBrawl is SignatureVerification {
     event FightFinished(address winner, uint256 fightId);
 
 
-    function createFight(uint8 level, bytes32 playerCharID) internal {
-        bytes32 _oponentsCharID = challengesList[level];
+    function createFight(uint8 level, bytes32 player2CharID) internal {
+        bytes32 player1CharID = challengesList[level];
         challengesList[level] = 0;
         _fightsCount += 1;
         Fight memory _newFight = Fight(
-            playerCharID, //player1Character
-            _oponentsCharID, // player2Character
-            msg.sender, // player1GeneralAddress
-            charsTopPlayer[_oponentsCharID], // player2GeneralAddress
-            temporaryAddresses[msg.sender], // player1TempAddress
-            temporaryAddresses[charsTopPlayer[_oponentsCharID]], // player2TempAddress
+            player1CharID, //player1Character
+            player2CharID, // player2Character
+            charsTopPlayer[player1CharID], // player1GeneralAddress
+            msg.sender, // player2GeneralAddress
+            temporaryAddresses[charsTopPlayer[player1CharID]], // player1TempAddress
+            temporaryAddresses[msg.sender], // player2TempAddress
             1, // current step
             block.number, //  current blockNumber
             address(0));  // address winner
         fights[_fightsCount] = _newFight;
-        chars[_oponentsCharID].fightId = _fightsCount;
-        chars[playerCharID].fightId = _fightsCount;
-        emit FightCreated(msg.sender,charsTopPlayer[_oponentsCharID], _fightsCount);
+        chars[player1CharID].fightId = _fightsCount;
+        chars[player2CharID].fightId = _fightsCount;
+        emit FightCreated(charsTopPlayer[player1CharID],msg.sender, _fightsCount);
     }
 
     function searchFight(address ERC721, uint256 tokenID, address tempAddress) public  {
         // проверка валидатора
         require(temporaryAddresses[msg.sender] == address(0), "already have a challenge");
         bytes32 _charID = keccak256(abi.encodePacked(ERC721, tokenID)); // generate charID
-        require(chars[_charID].fightId == 0);
+        require(chars[_charID].fightId == 0); // check if
         if (chars[_charID].level == 0) {
             chars[_charID] = defaultChar;
         }
@@ -188,6 +188,7 @@ contract CryptoBrawl is SignatureVerification {
         return damageDealed;
     }
 
+
     function actionSet(
         uint256 fightID,
         uint256 stepNum,
@@ -231,11 +232,17 @@ contract CryptoBrawl is SignatureVerification {
             || chars[currentFight.player2CharID].currentHP <= player1Damage) {
 
             if (chars[currentFight.player1CharID].currentHP <= player2Damage) {
+
+                chars[currentFight.player2CharID].currentHP -= player1Damage;
+                chars[currentFight.player1CharID].currentHP = 0;
                 fights[fightID].winner = currentFight.player2GeneralAddress;
                 chars[currentFight.player2CharID].winsCount +=1;
                 emit FightFinished(fights[fightID].winner,fightID);
+
             }
             else {
+                chars[currentFight.player1CharID].currentHP -= player2Damage;
+                chars[currentFight.player2CharID].currentHP = 0;
                 fights[fightID].winner = currentFight.player1GeneralAddress;
                 chars[currentFight.player1CharID].winsCount +=1;
                 emit FightFinished(fights[fightID].winner,fightID);
@@ -251,9 +258,10 @@ contract CryptoBrawl is SignatureVerification {
             temporaryAddresses[currentFight.player2GeneralAddress] = address (0);
         }
         else {
-            chars[currentFight.player1CharID].currentHP -= player2Damage;
+            chars[currentFight.player2CharID].currentHP -= player1Damage;
             chars[currentFight.player2CharID].currentHP -= player1Damage;
         }
 
     }
+
 }
