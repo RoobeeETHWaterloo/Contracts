@@ -258,7 +258,7 @@ contract CryptoBrawl is SignatureVerification {
             temporaryAddresses[currentFight.player2GeneralAddress] = address (0);
         }
         else {
-            chars[currentFight.player2CharID].currentHP -= player1Damage;
+            chars[currentFight.player1CharID].currentHP -= player2Damage;
             chars[currentFight.player2CharID].currentHP -= player1Damage;
         }
 
