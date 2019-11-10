@@ -66,6 +66,8 @@ contract CryptoBrawl is SignatureVerification {
         uint256 fightId;
         uint8 currentHP;
         uint256 lastFihgtBlockNumber;
+        uint256 tokenId;
+        address tokenAddress;
     }
 
     struct Fight {
@@ -97,7 +99,9 @@ contract CryptoBrawl is SignatureVerification {
         15, // default damage
         0, // fightId
         45,
-        0
+        0,
+        0,
+        address (0)
     );
 
     event LookingForAFight(address player, uint256 level);
@@ -134,6 +138,8 @@ contract CryptoBrawl is SignatureVerification {
         require(challengesList[chars[_charID].level] != _charID); // check if char in challenge
         if (chars[_charID].level == 0) {
             chars[_charID] = defaultChar;
+            chars[_charID].tokenAddress = ERC721;
+            chars[_charID].tokenId = tokenID;
         }
         charsTopPlayer[_charID] = msg.sender; //
         playerToChars [msg.sender] = _charID;
@@ -223,8 +229,8 @@ contract CryptoBrawl is SignatureVerification {
             player2Action2,
             player2Salt,player2Signature) == currentFight.player2TempAddress
         );  // validate that actions actualy signed by current players
-        //require(stepNum == currentFight.stepNum)
-        /**
+
+        require(stepNum == currentFight.stepNum);
         if (stepNum%2 == 0)
         {
             require(msg.sender == currentFight.player2GeneralAddress);
@@ -233,7 +239,7 @@ contract CryptoBrawl is SignatureVerification {
         {
             require(msg.sender == currentFight.player1GeneralAddress);
         }
-        */
+
         //calculate damage by player2
         uint8 player1Damage = calculateDamage(player1Action1,player1Action2, player2Action1, player2Action2) * (chars[currentFight.player1CharID].damage);
         //calculate damage by player2
@@ -247,21 +253,20 @@ contract CryptoBrawl is SignatureVerification {
 
             if (chars[currentFight.player1CharID].currentHP <= player2Damage) {
 
-                chars[currentFight.player1CharID].currentHP = chars[currentFight.player1CharID].fullHp;
-                chars[currentFight.player2CharID].currentHP = chars[currentFight.player2CharID].fullHp;
                 fights[fightID].winner = currentFight.player2GeneralAddress;
                 chars[currentFight.player2CharID].winsCount +=1;
                 emit FightFinished(fights[fightID].winner,fightID);
 
             }
             else {
-                chars[currentFight.player1CharID].currentHP = chars[currentFight.player1CharID].fullHp;
-                chars[currentFight.player2CharID].currentHP = chars[currentFight.player2CharID].fullHp;
+
                 fights[fightID].winner = currentFight.player1GeneralAddress;
                 chars[currentFight.player1CharID].winsCount +=1;
                 emit FightFinished(fights[fightID].winner,fightID);
                 // player2Char.level +=1;
             }
+            chars[currentFight.player1CharID].currentHP = chars[currentFight.player1CharID].fullHp;
+            chars[currentFight.player2CharID].currentHP = chars[currentFight.player2CharID].fullHp;
             chars[currentFight.player1CharID].fightsCount +=1;
             chars[currentFight.player2CharID].fightsCount +=1;
             chars[currentFight.player1CharID].lastFihgtBlockNumber = block.number;
@@ -286,13 +291,34 @@ contract CryptoBrawl is SignatureVerification {
 
 
 
-    /**
-
-    function cancelSearch(address ) public {
-
+    function cancelSearch() public {
+        temporaryAddresses[msg.sender] = address(0);
+        bytes32 charId = playerToChars[msg.sender];
+        challengesList[chars[charId].level] = 0;
     }
 
     function giveUp() public {
+        uint256 fightID = chars[playerToChars[msg.sender]].fightId;
+        if (fights[fightID].player1GeneralAddress == msg.sender) {
+            fights[fightID].winner = fights[fightID].player2GeneralAddress;
+            chars[playerToChars[msg.sender]].winsCount +=1;
+            emit FightFinished(fights[fightID].winner,fightID);
+        }
+        else {
+            fights[fightID].winner = fights[fightID].player1GeneralAddress;
+            chars[playerToChars[msg.sender]].winsCount +=1;
+            emit FightFinished(fights[fightID].winner,fightID);
+        }
+        chars[fights[fightID].player1CharID].currentHP = chars[fights[fightID].player1CharID].fullHp;
+        chars[fights[fightID].player2CharID].currentHP = chars[fights[fightID].player2CharID].fullHp;
+        chars[fights[fightID].player1CharID].fightsCount +=1;
+        chars[fights[fightID].player2CharID].fightsCount +=1;
+        chars[fights[fightID].player1CharID].lastFihgtBlockNumber = block.number;
+        chars[fights[fightID].player2CharID].lastFihgtBlockNumber = block.number;
+        chars[fights[fightID].player1CharID].fightId = 0;
+        chars[fights[fightID].player2CharID].fightId = 0;
+        temporaryAddresses[fights[fightID].player1GeneralAddress] = address (0);
+        temporaryAddresses[fights[fightID].player2GeneralAddress] = address (0);
 
     }
 
