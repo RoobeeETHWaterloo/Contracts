@@ -2,8 +2,13 @@
 Smart contract containing battle logic
 
 <p align="center">
-  <img width="246" height ="246"  alt="CryptoBrawl logo" src = "./assets/CRYPTOBRAWL.svg">
+  <img width="300" height ="120"  alt="CryptoBrawl logo" src = "./assets/CRYPTOBRAWL.svg">
 </p>
+
+<p align="center">
+  <img width="300" height ="300"  alt="CryptoBrawl logo" src = "./assets/scheme.png">
+</p>
+
 
 # Dependencies 
 [![truffle](https://img.shields.io/badge/truffle-docs-orange.svg)](https://truffleframework.com/docs)
