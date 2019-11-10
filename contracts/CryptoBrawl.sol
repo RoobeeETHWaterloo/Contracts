@@ -129,7 +129,7 @@ contract CryptoBrawl is SignatureVerification {
     function searchFight(address ERC721, uint256 tokenID, address tempAddress) public  {
         // проверка валидатора
         require(temporaryAddresses[msg.sender] == address(0), "already have a challenge");
-        bytes32 _charID = keccak256(abi.encodePacked(ERC721, tokenID)); // generate charID
+        bytes32 _charID = genCharId(ERC721, tokenID); // generate charID
         require(chars[_charID].fightId == 0); // check if char in fight
         require(challengesList[chars[_charID].level] != _charID); // check if char in challenge
         if (chars[_charID].level == 0) {
@@ -279,13 +279,22 @@ contract CryptoBrawl is SignatureVerification {
     }
 
 
+    function genCharId(address ERC721, uint256 tokenID) public pure returns(bytes32){
+        bytes32 _charID = keccak256(abi.encodePacked(ERC721, tokenID));
+        return _charID;
+    }
+
 
 
     /**
-    function giveUp() public {
+
+    function cancelSearch(address ) public {
 
     }
 
+    function giveUp() public {
+
+    }
 
     /**
     function claimTimeOut(uint256 fightID) public {

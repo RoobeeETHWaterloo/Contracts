@@ -265,6 +265,13 @@ contract CryptoBrawl is SignatureVerification {
     }
 
 
+    function genCharId(address ERC721, uint256 tokenID) public pure returns(bytes32){
+        bytes32 _charID = keccak256(abi.encodePacked(ERC721, tokenID));
+        return _charID;
+    }
+
+
+
 
 
     /**
