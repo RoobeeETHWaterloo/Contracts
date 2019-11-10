@@ -6,7 +6,7 @@ Smart contract containing battle logic
 </p>
 
 <p align="center">
-  <img width="650" height ="700"  alt="How it Works" src = "./assets/scheme.png">
+  <img width="650" height ="650"  alt="How it Works" src = "./assets/scheme.png">
 </p>
 
 
